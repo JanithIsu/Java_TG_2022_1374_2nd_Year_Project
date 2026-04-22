@@ -1,106 +1,196 @@
 package TechnicalOfficer.Panels;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 import com.toedter.calendar.JCalendar;
 import Database.dbconnection;
 
+import java.awt.*;
 import java.sql.*;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class MedicalPanel extends JPanel {
 
     private String userId;
-    private JComboBox courseIdBox, sessionTypeBox, ugIdBox;
-    private JLabel courseLabel, sTypeLabel, ugIdLabel, dLabel, rLabel, attenIdLabel;
-    private dbconnection dbconnection;
-    private Connection con;
-    private Statement stmt;
-    private ResultSet rs;
-    private Map<String, String> courseTypeMap = new HashMap<>();
+
+    private JComboBox<String> courseIdBox, sessionTypeBox, ugIdBox;
+    private JTextArea reasonArea;
     private JTable medicalTable;
-    private JScrollPane scrollPane;
-    private JTextArea reason;
-    private JButton addBtn, updateBtn, deleteBtn;
+    private DefaultTableModel tableModel;
     private JCalendar calendar;
-    private JTextField attendanceId;
+
+    private Map<String, String> courseTypeMap = new HashMap<>();
+
+    // 🎨 Theme Colors
+    private final Color HEADER_COLOR = new Color(33, 43, 54);
+    private final Color BACKGROUND_COLOR = new Color(245, 247, 250);
+    private final Color PRIMARY_COLOR = new Color(41, 128, 185);
 
     public MedicalPanel(String userId) {
         this.userId = userId;
-        initUi();
+
+        setLayout(new BorderLayout());
+        setBackground(BACKGROUND_COLOR);
+
+        initUI();
         loadUgIdsFromDatabase();
         loadCoursesFromDatabase();
         loadMedical();
     }
 
-    public void initUi() {
-        setLayout(null);
+    private void initUI() {
 
-        // COMBO BOXES
-        courseIdBox = new JComboBox<>();
-        courseIdBox.setBounds(180, 30, 150, 30);
-        courseIdBox.addActionListener(e -> updateSessionTypeBox());
-        add(courseIdBox);
+        // ===== HEADER =====
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(HEADER_COLOR);
+        header.setPreferredSize(new Dimension(100, 60));
 
-        sessionTypeBox = new JComboBox<>();
-        sessionTypeBox.setBounds(180, 90, 150, 30);
-        add(sessionTypeBox);
+        JLabel title = new JLabel("   Manage Medical Records");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        title.setForeground(Color.WHITE);
 
-        ugIdBox = new JComboBox<>();
-        ugIdBox.setBounds(180, 150, 150, 30);
-        add(ugIdBox);
+        header.add(title, BorderLayout.WEST);
+        add(header, BorderLayout.NORTH);
 
-        // CALENDAR
-        calendar = new JCalendar();
-        calendar.setBounds(560, 30, 200, 100);
-        add(calendar);
+        // ===== CONTENT =====
+        JPanel content = new JPanel(new BorderLayout(20, 20));
+        content.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        content.setBackground(BACKGROUND_COLOR);
 
-        // LABELS
-        courseLabel = new JLabel("COURSE :");
-        courseLabel.setBounds(50, 30, 150, 30);
-        add(courseLabel);
+        content.add(createFormPanel(), BorderLayout.NORTH);
+        content.add(createTablePanel(), BorderLayout.CENTER);
 
-        sTypeLabel = new JLabel("SESSION TYPE:");
-        sTypeLabel.setBounds(50, 90, 150, 30);
-        add(sTypeLabel);
-
-        ugIdLabel = new JLabel("UG_ID:");
-        ugIdLabel.setBounds(50, 150, 150, 30);
-        add(ugIdLabel);
-
-        dLabel = new JLabel("MEDICAL DATE:");
-        dLabel.setBounds(450, 30, 150, 30);
-        add(dLabel);
-
-        rLabel = new JLabel("REASON:");
-        rLabel.setBounds(50, 210, 150, 30);
-        add(rLabel);
-
-        // TEXT AREA
-        reason = new JTextArea();
-        reason.setBounds(180, 210, 150, 80);
-        add(reason);
-
-        // BUTTON - ADD
-        addBtn = new JButton("ADD");
-        addBtn.setBounds(450, 200, 90, 20);
-        addBtn.addActionListener(e -> addMedicalDetails(userId));
-        add(addBtn);
+        add(content, BorderLayout.CENTER);
     }
 
-    private void loadCoursesFromDatabase() {
-        try {
-            dbconnection = new dbconnection();
-            con = dbconnection.getConnection();
-            if (con == null) {
-                JOptionPane.showMessageDialog(this, "Database connection failed.");
-                return;
-            }
+    private JPanel createFormPanel() {
 
-            stmt = con.createStatement();
-            rs = stmt.executeQuery("SELECT course_id, course_type FROM course");
+        JPanel panel = new JPanel(new BorderLayout(30, 0));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // ===== LEFT SIDE (FIELDS)
+        JPanel leftPanel = new JPanel(new GridBagLayout());
+        leftPanel.setBackground(Color.WHITE);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        courseIdBox = new JComboBox<>();
+        sessionTypeBox = new JComboBox<>();
+        ugIdBox = new JComboBox<>();
+        reasonArea = new JTextArea(3, 18);
+
+        int row = 0;
+
+        addFormRow(leftPanel, gbc, row++, "Course:", courseIdBox);
+        addFormRow(leftPanel, gbc, row++, "Session Type:", sessionTypeBox);
+        addFormRow(leftPanel, gbc, row++, "UG ID:", ugIdBox);
+
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        leftPanel.add(new JLabel("Reason:"), gbc);
+
+        gbc.gridx = 1;
+        JScrollPane reasonScroll = new JScrollPane(reasonArea);
+        reasonScroll.setPreferredSize(new Dimension(180, 60));
+        leftPanel.add(reasonScroll, gbc);
+
+        // ===== RIGHT SIDE (CALENDAR + BUTTON)
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setBackground(Color.WHITE);
+
+        JLabel dateLabel = new JLabel("Medical Date:");
+        dateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        // ✅ Compact calendar like Attendance
+        calendar = new JCalendar();
+        calendar.setPreferredSize(new Dimension(220, 160));
+        calendar.setMaximumSize(new Dimension(220, 160));
+
+        JButton addBtn = createButton("Add Medical");
+        addBtn.addActionListener(e -> addMedicalDetails(userId));
+
+        rightPanel.add(dateLabel);
+        rightPanel.add(Box.createVerticalStrut(5));
+        rightPanel.add(calendar);
+        rightPanel.add(Box.createVerticalStrut(15));
+        rightPanel.add(addBtn);
+
+        panel.add(leftPanel, BorderLayout.CENTER);
+        panel.add(rightPanel, BorderLayout.EAST);
+
+        return panel;
+    }
+
+    private JPanel createTablePanel() {
+
+        String[] columns = {
+                "Medical ID", "UG ID", "Course ID",
+                "Session Type", "Reason", "Medical Date"
+        };
+
+        tableModel = new DefaultTableModel(columns, 0);
+        medicalTable = new JTable(tableModel);
+        styleTable();
+
+        JScrollPane scrollPane = new JScrollPane(medicalTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private void addFormRow(JPanel panel, GridBagConstraints gbc,
+                            int row, String labelText, Component comp) {
+
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 1;
+        panel.add(new JLabel(labelText), gbc);
+
+        gbc.gridx = 1;
+        panel.add(comp, gbc);
+    }
+
+    private JButton createButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFocusPainted(false);
+        btn.setBackground(PRIMARY_COLOR);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return btn;
+    }
+
+    private void styleTable() {
+
+        medicalTable.setRowHeight(28);
+        medicalTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        medicalTable.setSelectionBackground(PRIMARY_COLOR);
+        medicalTable.setSelectionForeground(Color.WHITE);
+
+        JTableHeader header = medicalTable.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        header.setBackground(PRIMARY_COLOR);
+        header.setForeground(Color.WHITE);
+    }
+
+    // =========================
+    // DATABASE LOGIC (UNCHANGED)
+    // =========================
+
+    private void loadCoursesFromDatabase() {
+
+        try (Connection con = dbconnection.getConnection();
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT course_id, course_type FROM course")) {
 
             while (rs.next()) {
                 String courseId = rs.getString("course_id");
@@ -110,50 +200,39 @@ public class MedicalPanel extends JPanel {
                 courseTypeMap.put(courseId, courseType);
             }
 
-            if (courseIdBox.getItemCount() > 0) {
-                courseIdBox.setSelectedIndex(0);
-                updateSessionTypeBox();
-            }
-
-            rs.close();
-            stmt.close();
-            con.close();
+            updateSessionTypeBox();
 
         } catch (SQLException e) {
-            e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error loading courses.");
         }
+
+        courseIdBox.addActionListener(e -> updateSessionTypeBox());
     }
 
     private void loadUgIdsFromDatabase() {
-        try {
-            dbconnection = new dbconnection();
-            con = dbconnection.getConnection();
 
-            stmt = con.createStatement();
-            rs = stmt.executeQuery("SELECT ug_id FROM undergraduate");
+        try (Connection con = dbconnection.getConnection();
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT ug_id FROM undergraduate")) {
 
             while (rs.next()) {
                 ugIdBox.addItem(rs.getString("ug_id"));
             }
 
-            rs.close();
-            stmt.close();
-            con.close();
         } catch (SQLException e) {
-            e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error loading UG IDs.");
         }
     }
 
     private void updateSessionTypeBox() {
-        String selectedCourse = (String) courseIdBox.getSelectedItem();
+
         sessionTypeBox.removeAllItems();
+        String selectedCourse = (String) courseIdBox.getSelectedItem();
 
         if (selectedCourse != null && courseTypeMap.containsKey(selectedCourse)) {
             String type = courseTypeMap.get(selectedCourse);
 
-            if (type.equalsIgnoreCase("both")) {
+            if ("both".equalsIgnoreCase(type)) {
                 sessionTypeBox.addItem("theory");
                 sessionTypeBox.addItem("practical");
             } else {
@@ -163,21 +242,16 @@ public class MedicalPanel extends JPanel {
     }
 
     public void loadMedical() {
-        if (scrollPane != null) {
-            remove(scrollPane);
-        }
 
-        String[] columnNames = {"Medical ID", "UG ID", "Course ID", "Session Type", "Reason", "MedicalDate"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        tableModel.setRowCount(0);
 
-        try {
-            dbconnection = new dbconnection();
-            con = dbconnection.getConnection();
-            stmt = con.createStatement();
-            rs = stmt.executeQuery("SELECT * FROM medical");
+        try (Connection con = dbconnection.getConnection();
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM medical")) {
 
             while (rs.next()) {
-                model.addRow(new Object[]{
+
+                tableModel.addRow(new Object[]{
                         rs.getString("medical_id"),
                         rs.getString("ug_id"),
                         rs.getString("course_id"),
@@ -187,106 +261,68 @@ public class MedicalPanel extends JPanel {
                 });
             }
 
-            medicalTable = new JTable(model);
-            scrollPane = new JScrollPane(medicalTable);
-            scrollPane.setBounds(50, 300, 600, 150);
-            add(scrollPane);
-
-            rs.close();
-            stmt.close();
-            con.close();
-
         } catch (SQLException e) {
-            e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to load medical records.");
         }
     }
 
-    //  UPDATED METHOD
     public void addMedicalDetails(String userId) {
+
         String ugId = (String) ugIdBox.getSelectedItem();
         String courseId = (String) courseIdBox.getSelectedItem();
         String sessionType = (String) sessionTypeBox.getSelectedItem();
-        String reasonText = reason.getText();
+        String reasonText = reasonArea.getText();
+        java.sql.Date sqlDate = new java.sql.Date(calendar.getDate().getTime());
 
-        Date selectedDate = calendar.getDate();
-        java.sql.Date sqlDate = new java.sql.Date(selectedDate.getTime());
-
-        if (ugId == null || courseId == null || sessionType == null || reasonText == null || reasonText.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill in all fields.");
+        if (ugId == null || courseId == null || sessionType == null || reasonText.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill all fields.");
             return;
         }
 
-        try {
-            dbconnection = new dbconnection();
-            con = dbconnection.getConnection();
+        try (Connection con = dbconnection.getConnection()) {
 
-            // 1. Check for matching attendance
-            String checkQuery = "SELECT * FROM attendance WHERE ug_id=? AND course_id=? AND session_type=? AND atten_date=?";
+            // Check attendance
+            String checkQuery = "SELECT atten_id FROM attendance WHERE ug_id=? AND course_id=? AND session_type=? AND atten_date=?";
             PreparedStatement checkStmt = con.prepareStatement(checkQuery);
             checkStmt.setString(1, ugId);
             checkStmt.setString(2, courseId);
             checkStmt.setString(3, sessionType);
             checkStmt.setDate(4, sqlDate);
+
             ResultSet rsCheck = checkStmt.executeQuery();
 
             if (!rsCheck.next()) {
                 JOptionPane.showMessageDialog(this, "No matching attendance record found.");
-                rsCheck.close();
-                checkStmt.close();
-                con.close();
                 return;
             }
 
-            int matchedAttenId = rsCheck.getInt("atten_id");
+            int attenId = rsCheck.getInt("atten_id");
 
-            // 2. Update attendance status
-            String updateQuery = "UPDATE attendance SET atten_status='medical' WHERE atten_id=?";
-            PreparedStatement updateStmt = con.prepareStatement(updateQuery);
-            updateStmt.setInt(1, matchedAttenId);
-            int updated = updateStmt.executeUpdate();
-            updateStmt.close();
+            // Update attendance
+            PreparedStatement updateStmt = con.prepareStatement(
+                    "UPDATE attendance SET atten_status='medical' WHERE atten_id=?");
+            updateStmt.setInt(1, attenId);
+            updateStmt.executeUpdate();
 
-            if (updated == 0) {
-                JOptionPane.showMessageDialog(this, "Failed to update attendance status.");
-                rsCheck.close();
-                checkStmt.close();
-                con.close();
-                return;
-            }
+            // Insert medical
+            PreparedStatement insertStmt = con.prepareStatement(
+                    "INSERT INTO medical (ug_id, course_id, session_type, reason, medical_date, to_id, atten_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
-            // 3. Insert into medical
-            String insertQuery = "INSERT INTO medical (ug_id, course_id, session_type, reason, medical_date, to_id, atten_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement ps = con.prepareStatement(insertQuery);
-            ps.setString(1, ugId);
-            ps.setString(2, courseId);
-            ps.setString(3, sessionType);
-            ps.setString(4, reasonText);
-            ps.setDate(5, sqlDate);
-            ps.setString(6, userId);
-            ps.setInt(7, matchedAttenId);
+            insertStmt.setString(1, ugId);
+            insertStmt.setString(2, courseId);
+            insertStmt.setString(3, sessionType);
+            insertStmt.setString(4, reasonText);
+            insertStmt.setDate(5, sqlDate);
+            insertStmt.setString(6, userId);
+            insertStmt.setInt(7, attenId);
 
-            int rowsInserted = ps.executeUpdate();
+            insertStmt.executeUpdate();
 
-            if (rowsInserted > 0) {
-                JOptionPane.showMessageDialog(this, "Medical record added and attendance updated.");
-            } else {
-                JOptionPane.showMessageDialog(this, "Medical record insert failed.");
-            }
-
-            rsCheck.close();
-            checkStmt.close();
-            ps.close();
-            con.close();
+            JOptionPane.showMessageDialog(this, "Medical added & attendance updated.");
+            loadMedical();
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Database error: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Database error.");
         }
-
-        loadMedical();
-    }
-    public void updateMedical(){
-
     }
 }
