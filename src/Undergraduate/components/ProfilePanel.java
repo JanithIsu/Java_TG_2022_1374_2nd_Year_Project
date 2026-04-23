@@ -66,8 +66,10 @@ public class ProfilePanel extends JPanel {
         rightPanel.setBackground(CARD_COLOR);
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
 
-        if (profilePicPath == null || profilePicPath.trim().isEmpty()) {
-            profilePicPath = "src/Undergraduate/Profile_images/defaultUser.jpeg";
+        if (profilePicPath == null || profilePicPath.trim().isEmpty()
+                || profilePicPath.equalsIgnoreCase("null")) {
+
+            profilePicPath = "Undergraduate/Profile_images/defaultUser.jpeg";
         }
 
         CircularImagePanel profilePic =

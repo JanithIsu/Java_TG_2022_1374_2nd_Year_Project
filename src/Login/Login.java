@@ -150,7 +150,7 @@ public class Login extends javax.swing.JFrame {
 
         jPanel2.setBackground(new java.awt.Color(212, 201, 190));
 
-        jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/SystemImages/Gemini_Generated_Image_o38cc8o38cc8o38c__1_-removebg-preview.png"))); // NOI18N
+        jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/SystemImages/LOGO_OF_RUHUNA-Alt3.png"))); // NOI18N
         jLabel4.setText("jLabel4");
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);

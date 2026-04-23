@@ -88,8 +88,10 @@ public class ProfilePanel extends JPanel {
         rightPanel.setBackground(CARD_COLOR);
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
 
-        if (profilePicPath == null || profilePicPath.trim().isEmpty()) {
-            profilePicPath = "src/TechnicalOfficer/images_to/defaultDP.png";
+        if (profilePicPath == null || profilePicPath.trim().isEmpty()
+                || profilePicPath.equalsIgnoreCase("null")) {
+
+            profilePicPath = "TechnicalOfficer/images_to/defaultDp.png";
         }
 
         ImageIcon profileIcon = new ImageIcon(profilePicPath);
