@@ -96,7 +96,7 @@ public class Undergraduate extends JFrame implements ActionListener {
         contentPanel.add(new TimeTablePanel(dbConnector), "Time Table");
         contentPanel.add(new NoticePanel(userId), "Notices");
         contentPanel.add(new ProfilePanel(userId), "My Profile");
-        contentPanel.add(new JPanel(), "Enrollments");
+        contentPanel.add(new EnrollmentPanel(userId), "Enrollments");
 
         add(sidebarPanel, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);

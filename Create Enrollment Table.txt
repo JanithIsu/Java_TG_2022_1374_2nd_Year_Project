@@ -1,0 +1,18 @@
+CREATE TABLE enrollment (
+    enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
+    ug_id VARCHAR(10) NOT NULL,
+    course_id VARCHAR(10) NOT NULL,
+    enrollment_date DATE,
+
+    CONSTRAINT fk_enroll_student
+        FOREIGN KEY (ug_id)
+        REFERENCES undergraduate(ug_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_enroll_course
+        FOREIGN KEY (course_id)
+        REFERENCES course(course_id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_enrollment (ug_id, course_id)
+);
